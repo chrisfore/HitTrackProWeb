@@ -649,16 +649,24 @@
         const hitTypeStats = await DB.getHitTypeStats(hits);
         const pitchStats = await DB.getPitchStats(hits);
 
-        // Get title
+        // Get title and logo
         let title = 'All Data';
+        let logoDataUrl = null;
+        const teams = await DB.getTeams();
         if (playerId) {
             const players = await DB.getPlayers();
             const p = players.find(pl => pl.id === playerId);
-            if (p) title = displayName(p);
+            if (p) {
+                title = displayName(p);
+                const t = teams.find(tm => tm.id === p.teamId);
+                if (t && t.logo) logoDataUrl = t.logo;
+            }
         } else if (teamId) {
-            const teams = await DB.getTeams();
             const t = teams.find(tm => tm.id === teamId);
-            if (t) title = t.name;
+            if (t) {
+                title = t.name;
+                if (t.logo) logoDataUrl = t.logo;
+            }
         }
 
         // Build a canvas for the spray chart to include in print
@@ -669,9 +677,15 @@
         drawField(printCtx, printCanvas, hits);
         const chartImage = printCanvas.toDataURL('image/png');
 
+        const logoHtml = logoDataUrl
+            ? `<img src="${logoDataUrl}" class="logo">`
+            : '';
+
         const html = `<html><head><style>
             body { font-family: -apple-system, sans-serif; padding: 20px; color: #1d1d1f; }
-            h1 { font-size: 18px; margin-bottom: 4px; }
+            .header { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+            .logo { width: 50px; height: 50px; object-fit: contain; }
+            h1 { font-size: 18px; margin: 0; }
             .subtitle { color: #6e6e73; font-size: 12px; margin-bottom: 16px; }
             .chart { text-align: center; margin-bottom: 16px; }
             .chart img { border-radius: 8px; }
@@ -680,7 +694,7 @@
             td { padding: 6px 8px; border-bottom: 1px solid #e5e5ea; }
             h2 { font-size: 14px; margin: 12px 0 8px; }
         </style></head><body>
-            <h1>${escapeHtml(title)} - Hit Report</h1>
+            <div class="header">${logoHtml}<h1>${escapeHtml(title)} - Hit Report</h1></div>
             <div class="subtitle">Generated ${new Date().toLocaleDateString()}</div>
             <div class="chart"><img src="${chartImage}" width="300" height="300"></div>
             <h2>Hit Types</h2>
@@ -717,11 +731,61 @@
             ).join('');
 
         await refreshLineup();
+        await refreshLogoPreview();
     }
 
     document.getElementById('settings-team-select').addEventListener('change', async (e) => {
         settingsTeamId = e.target.value || null;
         await refreshLineup();
+        await refreshLogoPreview();
+    });
+
+    // Logo upload
+    async function refreshLogoPreview() {
+        const preview = document.getElementById('logo-preview');
+        const removeBtn = document.getElementById('remove-logo');
+        if (!settingsTeamId) {
+            preview.innerHTML = '';
+            preview.classList.remove('has-logo');
+            removeBtn.style.display = 'none';
+            return;
+        }
+        const teams = await DB.getTeams();
+        const team = teams.find(t => t.id === settingsTeamId);
+        if (team && team.logo) {
+            preview.innerHTML = `<img src="${team.logo}" alt="Logo">`;
+            preview.classList.add('has-logo');
+            removeBtn.style.display = '';
+        } else {
+            preview.innerHTML = 'No logo';
+            preview.classList.remove('has-logo');
+            removeBtn.style.display = 'none';
+        }
+    }
+
+    document.getElementById('upload-logo').addEventListener('click', () => {
+        if (!settingsTeamId) { showToast('Select a team first'); return; }
+        document.getElementById('logo-file').click();
+    });
+
+    document.getElementById('logo-file').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 500 * 1024) { showToast('Image too large (500KB max)'); e.target.value = ''; return; }
+        const reader = new FileReader();
+        reader.onload = async () => {
+            await DB.setTeamLogo(settingsTeamId, reader.result);
+            await refreshLogoPreview();
+            showToast('Logo uploaded');
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    });
+
+    document.getElementById('remove-logo').addEventListener('click', async () => {
+        await DB.setTeamLogo(settingsTeamId, null);
+        await refreshLogoPreview();
+        showToast('Logo removed');
     });
 
     async function refreshLineup() {
