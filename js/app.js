@@ -186,7 +186,7 @@
         const teamSelect = document.getElementById('track-team-select');
         teamSelect.innerHTML = teams.map(t =>
             `<option value="${t.id}" ${t.id === selectedTeamId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
-        ).join('');
+        ).join('') + '<option value="__new_team__">+ New Team...</option>';
 
         if (teams.length > 0 && !selectedTeamId) {
             selectedTeamId = teams[0].id;
@@ -199,6 +199,11 @@
     }
 
     document.getElementById('track-team-select').addEventListener('change', async (e) => {
+        if (e.target.value === '__new_team__') {
+            e.target.value = selectedTeamId || '';
+            document.getElementById('create-team').click();
+            return;
+        }
         selectedTeamId = e.target.value;
         localStorage.setItem('hittrackpro_selectedTeam', selectedTeamId);
         pitchFilter = null;
@@ -215,7 +220,61 @@
         }
         const players = await DB.getPlayersByTeam(selectedTeamId);
         playerSelect.innerHTML = '<option value="">Select player</option>' +
-            players.map(p => `<option value="${p.id}">${escapeHtml(displayName(p))}</option>`).join('');
+            players.map(p => `<option value="${p.id}">${escapeHtml(displayName(p))}</option>`).join('') +
+            '<option value="__new__">+ New Player...</option>';
+    }
+
+    document.getElementById('track-player-select').addEventListener('change', async (e) => {
+        if (e.target.value === '__new__') {
+            e.target.value = '';
+            showAddPlayerModal();
+        }
+    });
+
+    function showAddPlayerModal() {
+        const modal = document.getElementById('rename-modal');
+        const input = document.getElementById('rename-input');
+        document.getElementById('rename-title').textContent = 'Add Player';
+        input.value = '';
+        input.placeholder = '#number name (e.g. 7 Smith)';
+        input.maxLength = 34;
+        modal.style.display = 'flex';
+        input.focus();
+
+        const okBtn = document.getElementById('rename-ok');
+        const cancelBtn = document.getElementById('rename-cancel');
+        const ac = new AbortController();
+
+        const cleanup = () => {
+            modal.style.display = 'none';
+            input.placeholder = '';
+            input.maxLength = 30;
+            ac.abort();
+            okBtn.replaceWith(okBtn.cloneNode(true));
+            cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+        };
+
+        const doAdd = async () => {
+            const val = input.value.trim();
+            if (!val) { cleanup(); return; }
+            // Parse "#number name" or just "number name" or just "number"
+            const match = val.match(/^#?(\d{1,3})\s*(.*)/);
+            if (!match) { showToast('Enter a number (e.g. 7 Smith)'); return; }
+            const number = match[1];
+            const name = match[2] || '';
+            await DB.addPlayer(selectedTeamId, number, name);
+            cleanup();
+            await refreshTrackPlayers();
+            await refreshLineup();
+            showToast('Player added');
+        };
+
+        document.getElementById('rename-ok').addEventListener('click', doAdd);
+        document.getElementById('rename-cancel').addEventListener('click', cleanup);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') doAdd();
+            if (e.key === 'Escape') cleanup();
+        }, { signal: ac.signal });
     }
 
     async function refreshTrackField() {
