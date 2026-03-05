@@ -489,6 +489,12 @@ body {
     margin: 10px 0;
 }
 
+.section-hint {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0 0 8px;
+}
+
 .logo-preview {
     width: 60px;
     height: 60px;

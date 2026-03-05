@@ -651,28 +651,25 @@
 
         // Get title and logo
         let title = 'All Data';
-        let logoDataUrl = null;
+        const logoDataUrl = localStorage.getItem('hittrackpro_logo');
         const teams = await DB.getTeams();
         if (playerId) {
             const players = await DB.getPlayers();
             const p = players.find(pl => pl.id === playerId);
             if (p) {
                 title = displayName(p);
-                const t = teams.find(tm => tm.id === p.teamId);
-                if (t && t.logo) logoDataUrl = t.logo;
             }
         } else if (teamId) {
             const t = teams.find(tm => tm.id === teamId);
             if (t) {
                 title = t.name;
-                if (t.logo) logoDataUrl = t.logo;
             }
         }
 
-        // Build a canvas for the spray chart to include in print
+        // Build a canvas for the spray chart to include in print (match screen canvas size)
         const printCanvas = document.createElement('canvas');
-        printCanvas.width = 300;
-        printCanvas.height = 300;
+        printCanvas.width = 500;
+        printCanvas.height = 500;
         const printCtx = printCanvas.getContext('2d');
         drawField(printCtx, printCanvas, hits);
         const chartImage = printCanvas.toDataURL('image/png');
@@ -696,7 +693,7 @@
         </style></head><body>
             <div class="header">${logoHtml}<h1>${escapeHtml(title)} - Hit Report</h1></div>
             <div class="subtitle">Generated ${new Date().toLocaleDateString()}</div>
-            <div class="chart"><img src="${chartImage}" width="300" height="300"></div>
+            <div class="chart"><img src="${chartImage}" width="400" height="400"></div>
             <h2>Hit Types</h2>
             <table><tr><th>Type</th><th>Count</th></tr>
             ${Object.entries(hitTypeStats).map(([type, count]) =>
@@ -718,7 +715,18 @@
         printWindow.document.close();
         printWindow.focus();
         printWindow.onafterprint = () => printWindow.close();
-        printWindow.print();
+        // Wait for all images to load before printing
+        const images = printWindow.document.querySelectorAll('img');
+        let loaded = 0;
+        const total = images.length;
+        if (total === 0) { printWindow.print(); return; }
+        images.forEach(img => {
+            if (img.complete) { loaded++; if (loaded === total) printWindow.print(); }
+            else {
+                img.onload = () => { loaded++; if (loaded === total) printWindow.print(); };
+                img.onerror = () => { loaded++; if (loaded === total) printWindow.print(); };
+            }
+        });
     });
 
     // --- SETTINGS TAB ---
@@ -731,29 +739,20 @@
             ).join('');
 
         await refreshLineup();
-        await refreshLogoPreview();
     }
 
     document.getElementById('settings-team-select').addEventListener('change', async (e) => {
         settingsTeamId = e.target.value || null;
         await refreshLineup();
-        await refreshLogoPreview();
     });
 
     // Logo upload
-    async function refreshLogoPreview() {
+    function refreshLogoPreview() {
         const preview = document.getElementById('logo-preview');
         const removeBtn = document.getElementById('remove-logo');
-        if (!settingsTeamId) {
-            preview.innerHTML = '';
-            preview.classList.remove('has-logo');
-            removeBtn.style.display = 'none';
-            return;
-        }
-        const teams = await DB.getTeams();
-        const team = teams.find(t => t.id === settingsTeamId);
-        if (team && team.logo) {
-            preview.innerHTML = `<img src="${team.logo}" alt="Logo">`;
+        const logo = localStorage.getItem('hittrackpro_logo');
+        if (logo) {
+            preview.innerHTML = `<img src="${logo}" alt="Logo">`;
             preview.classList.add('has-logo');
             removeBtn.style.display = '';
         } else {
@@ -763,28 +762,29 @@
         }
     }
 
+    refreshLogoPreview();
+
     document.getElementById('upload-logo').addEventListener('click', () => {
-        if (!settingsTeamId) { showToast('Select a team first'); return; }
         document.getElementById('logo-file').click();
     });
 
-    document.getElementById('logo-file').addEventListener('change', async (e) => {
+    document.getElementById('logo-file').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
         if (file.size > 500 * 1024) { showToast('Image too large (500KB max)'); e.target.value = ''; return; }
         const reader = new FileReader();
-        reader.onload = async () => {
-            await DB.setTeamLogo(settingsTeamId, reader.result);
-            await refreshLogoPreview();
+        reader.onload = () => {
+            localStorage.setItem('hittrackpro_logo', reader.result);
+            refreshLogoPreview();
             showToast('Logo uploaded');
         };
         reader.readAsDataURL(file);
         e.target.value = '';
     });
 
-    document.getElementById('remove-logo').addEventListener('click', async () => {
-        await DB.setTeamLogo(settingsTeamId, null);
-        await refreshLogoPreview();
+    document.getElementById('remove-logo').addEventListener('click', () => {
+        localStorage.removeItem('hittrackpro_logo');
+        refreshLogoPreview();
         showToast('Logo removed');
     });
 

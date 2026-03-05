@@ -94,15 +94,6 @@ const DB = (() => {
         }
     }
 
-    async function setTeamLogo(id, logoDataUrl) {
-        const teams = await getTeams();
-        const team = teams.find(t => t.id === id);
-        if (team) {
-            team.logo = logoDataUrl || null;
-            await put('teams', team);
-        }
-    }
-
     async function deleteTeam(id) {
         await del('teams', id);
         const players = await getPlayersByTeam(id);
@@ -329,7 +320,7 @@ const DB = (() => {
     }
 
     return {
-        init, getTeams, addTeam, renameTeam, setTeamLogo, deleteTeam,
+        init, getTeams, addTeam, renameTeam, deleteTeam,
         getPlayers, getPlayersByTeam, addPlayer, removePlayer, updatePlayer,
         getHits, getHitsByTeam, getHitsByPlayer, addHit, removeHit,
         clearHitsByTeam, clearAllHits,
