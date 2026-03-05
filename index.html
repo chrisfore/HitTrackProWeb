@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hit Track Pro</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9918;</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <!-- Setup Screen -->
+        <div id="setup-screen" class="screen" style="display:none;">
+            <div class="setup-container">
+                <h1>Hit Track Pro</h1>
+                <p>Track hit locations and statistics for your team</p>
+                <div class="setup-form">
+                    <label>Team Name
+                        <input type="text" id="setup-team-name" placeholder="Enter team name" maxlength="30">
+                    </label>
+                    <button id="setup-start" class="primary-btn">Start Tracking</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App -->
+        <div id="main-app" class="screen" style="display:none;">
+            <nav class="tab-bar">
+                <button class="tab active" data-tab="track">Track</button>
+                <button class="tab" data-tab="results">Results</button>
+                <button class="tab" data-tab="settings">Settings</button>
+            </nav>
+
+            <!-- TRACK TAB -->
+            <div id="track-tab" class="tab-content active">
+                <div class="track-header">
+                    <div class="track-selectors">
+                        <label>Team:
+                            <select id="track-team-select"></select>
+                        </label>
+                        <label>Player:
+                            <select id="track-player-select">
+                                <option value="">Select player</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="hit-legend">
+                        <span class="legend-dot fly-ball"></span> Fly Ball
+                        <span class="legend-dot line-drive"></span> Line Drive
+                        <span class="legend-dot pop-up"></span> Pop Up
+                        <span class="legend-dot grounder"></span> Grounder
+                    </div>
+                </div>
+                <div class="track-layout">
+                    <div class="field-container">
+                        <canvas id="field-canvas" width="400" height="400"></canvas>
+                        <p class="field-hint">Tap the field to record a hit</p>
+                    </div>
+                    <div class="pitch-stats-bar">
+                        <h4>Pitch Stats</h4>
+                        <div id="pitch-stats-list"></div>
+                    </div>
+                </div>
+                <button id="undo-hit" class="undo-btn" style="display:none;">Undo Last Hit</button>
+            </div>
+
+            <!-- RESULTS TAB -->
+            <div id="results-tab" class="tab-content">
+                <div class="results-filters">
+                    <div class="filter-row">
+                        <label>Team:
+                            <select id="results-team-filter"></select>
+                        </label>
+                        <label>Player:
+                            <select id="results-player-filter">
+                                <option value="">All Players</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="filter-row">
+                        <label class="date-toggle">
+                            <input type="checkbox" id="date-filter-toggle"> Date Range
+                        </label>
+                    </div>
+                    <div id="date-range-row" class="filter-row" style="display:none;">
+                        <label>From: <input type="date" id="date-from"></label>
+                        <label>To: <input type="date" id="date-to"></label>
+                    </div>
+                    <div class="filter-row">
+                        <button id="export-pdf" class="action-btn">Export PDF</button>
+                    </div>
+                </div>
+                <div class="results-content">
+                    <div class="results-field-container">
+                        <canvas id="results-canvas" width="400" height="400"></canvas>
+                    </div>
+                    <div class="results-stats">
+                        <div id="hit-type-stats"></div>
+                        <div id="pitch-breakdown"></div>
+                        <div id="hits-by-player"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS TAB -->
+            <div id="settings-tab" class="tab-content">
+                <div class="settings-sections">
+                    <div class="settings-section">
+                        <h3>Team</h3>
+                        <div class="settings-row">
+                            <label>Current Team:
+                                <select id="settings-team-select"></select>
+                            </label>
+                        </div>
+                        <div class="settings-actions">
+                            <button id="rename-team" class="action-btn">Rename Team</button>
+                            <button id="delete-team" class="action-btn danger">Delete Team</button>
+                            <button id="create-team" class="action-btn">New Team</button>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Lineup</h3>
+                        <div id="lineup-list" class="lineup-list"></div>
+                        <div class="add-player-row">
+                            <input type="text" id="new-player-number" placeholder="#" maxlength="3" class="number-input">
+                            <input type="text" id="new-player-name" placeholder="Name (optional)" maxlength="30">
+                            <button id="add-player" class="action-btn">Add</button>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Data Management</h3>
+                        <div class="data-actions">
+                            <button id="export-data" class="action-btn">Export All Data</button>
+                            <button id="import-data" class="action-btn">Import Data</button>
+                            <input type="file" id="import-file" accept=".hitdata,.json" style="display:none;">
+                            <button id="clear-hits" class="action-btn danger">Clear All Hits</button>
+                            <button id="reset-all" class="action-btn danger">Reset All Data</button>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Appearance</h3>
+                        <label class="toggle-label">
+                            <span>Dark Mode</span>
+                            <input type="checkbox" id="dark-mode-toggle">
+                        </label>
+                    </div>
+                    <div class="settings-section">
+                        <p class="version-text">Hit Track Pro Web v1.0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Hit Input Modal -->
+    <div id="hit-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Record Hit</h3>
+            <div class="hit-form">
+                <div class="form-group">
+                    <label>Hit Type <span class="required">*</span></label>
+                    <div class="hit-type-buttons">
+                        <button class="hit-type-btn" data-type="Fly Ball"><span class="dot fly-ball"></span>Fly Ball</button>
+                        <button class="hit-type-btn" data-type="Line Drive"><span class="dot line-drive"></span>Line Drive</button>
+                        <button class="hit-type-btn" data-type="Pop Up"><span class="dot pop-up"></span>Pop Up</button>
+                        <button class="hit-type-btn" data-type="Grounder"><span class="dot grounder"></span>Grounder</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Pitch Type <span class="optional">(optional)</span></label>
+                    <div class="pitch-type-buttons">
+                        <button class="option-btn" data-pitch="Fastball">Fastball</button>
+                        <button class="option-btn" data-pitch="Change Up">Change Up</button>
+                        <button class="option-btn" data-pitch="Curve">Curve</button>
+                        <button class="option-btn" data-pitch="Rise">Rise</button>
+                        <button class="option-btn" data-pitch="Drop">Drop</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Pitch Location <span class="optional">(optional)</span></label>
+                    <div class="pitch-loc-buttons">
+                        <button class="option-btn" data-loc="High">High</button>
+                        <button class="option-btn" data-loc="Low">Low</button>
+                        <button class="option-btn" data-loc="Inside">Inside</button>
+                        <button class="option-btn" data-loc="Outside">Outside</button>
+                        <button class="option-btn" data-loc="Middle">Middle</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="hit-cancel" class="action-btn secondary">Cancel</button>
+                <button id="hit-save" class="action-btn" disabled>Save Hit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <p id="confirm-message"></p>
+            <div class="modal-actions">
+                <button id="confirm-cancel" class="action-btn secondary">Cancel</button>
+                <button id="confirm-ok" class="action-btn danger">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div id="rename-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3 id="rename-title">Rename</h3>
+            <input type="text" id="rename-input" maxlength="30">
+            <div class="modal-actions">
+                <button id="rename-cancel" class="action-btn secondary">Cancel</button>
+                <button id="rename-ok" class="action-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Create Modal -->
+    <div id="team-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Create New Team</h3>
+            <input type="text" id="team-name-input" placeholder="Team name" maxlength="30">
+            <div class="modal-actions">
+                <button id="team-cancel" class="action-btn secondary">Cancel</button>
+                <button id="team-create-ok" class="action-btn">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
