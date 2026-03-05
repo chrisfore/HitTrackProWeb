@@ -164,6 +164,8 @@ body {
     background: var(--bg);
     color: var(--text);
     font-size: 0.9rem;
+    max-width: 250px;
+    width: auto;
 }
 
 .hit-legend {
@@ -272,6 +274,24 @@ body {
 }
 
 .undo-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+.add-player-modal-fields {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.add-player-modal-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.add-player-modal-fields label:last-child {
+    flex: 1;
+}
 
 /* Results */
 .results-filters {

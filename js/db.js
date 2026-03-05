@@ -80,7 +80,7 @@ const DB = (() => {
     }
 
     async function addTeam(name) {
-        const team = { id: crypto.randomUUID(), name: name.trim() };
+        const team = { id: crypto.randomUUID(), name: name.trim().substring(0, 60) };
         await put('teams', team);
         return team;
     }
@@ -89,7 +89,7 @@ const DB = (() => {
         const teams = await getTeams();
         const team = teams.find(t => t.id === id);
         if (team) {
-            team.name = newName.trim();
+            team.name = newName.trim().substring(0, 60);
             await put('teams', team);
         }
     }
@@ -121,8 +121,8 @@ const DB = (() => {
         const player = {
             id: crypto.randomUUID(),
             teamId,
-            number: number.trim(),
-            name: (name || '').trim(),
+            number: number.trim().substring(0, 3),
+            name: (name || '').trim().substring(0, 60),
             lineupOrder: existing.length + 1
         };
         await put('players', player);

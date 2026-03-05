@@ -18,7 +18,7 @@
                 <p>Track hit locations and statistics for your team</p>
                 <div class="setup-form">
                     <label>Team Name
-                        <input type="text" id="setup-team-name" placeholder="Enter team name" maxlength="30">
+                        <input type="text" id="setup-team-name" placeholder="Enter team name" maxlength="60">
                     </label>
                     <button id="setup-start" class="primary-btn">Start Tracking</button>
                 </div>
@@ -125,7 +125,7 @@
                         <div id="lineup-list" class="lineup-list"></div>
                         <div class="add-player-row">
                             <input type="text" id="new-player-number" placeholder="#" maxlength="3" class="number-input">
-                            <input type="text" id="new-player-name" placeholder="Name (optional)" maxlength="30">
+                            <input type="text" id="new-player-name" placeholder="Name (optional)" maxlength="60">
                             <button id="add-player" class="action-btn">Add</button>
                         </div>
                     </div>
@@ -213,10 +213,29 @@
     <div id="rename-modal" class="modal" style="display:none;">
         <div class="modal-content">
             <h3 id="rename-title">Rename</h3>
-            <input type="text" id="rename-input" maxlength="30">
+            <input type="text" id="rename-input" maxlength="60">
             <div class="modal-actions">
                 <button id="rename-cancel" class="action-btn secondary">Cancel</button>
                 <button id="rename-ok" class="action-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Player Modal -->
+    <div id="add-player-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Add Player</h3>
+            <div class="add-player-modal-fields">
+                <label>Number <span style="color:var(--danger)">*</span>
+                    <input type="text" id="modal-player-number" placeholder="#" maxlength="3" style="width:80px; text-align:center;">
+                </label>
+                <label>Name <span style="color:var(--text-secondary); font-size:0.8rem;">(optional)</span>
+                    <input type="text" id="modal-player-name" placeholder="Player name" maxlength="60">
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button id="add-player-cancel" class="action-btn secondary">Cancel</button>
+                <button id="add-player-ok" class="action-btn">Add</button>
             </div>
         </div>
     </div>
@@ -225,7 +244,7 @@
     <div id="team-modal" class="modal" style="display:none;">
         <div class="modal-content">
             <h3>Create New Team</h3>
-            <input type="text" id="team-name-input" placeholder="Team name" maxlength="30">
+            <input type="text" id="team-name-input" placeholder="Team name" maxlength="60">
             <div class="modal-actions">
                 <button id="team-cancel" class="action-btn secondary">Cancel</button>
                 <button id="team-create-ok" class="action-btn">Create</button>

@@ -232,36 +232,29 @@
     });
 
     function showAddPlayerModal() {
-        const modal = document.getElementById('rename-modal');
-        const input = document.getElementById('rename-input');
-        document.getElementById('rename-title').textContent = 'Add Player';
-        input.value = '';
-        input.placeholder = '#number name (e.g. 7 Smith)';
-        input.maxLength = 34;
+        const modal = document.getElementById('add-player-modal');
+        const numInput = document.getElementById('modal-player-number');
+        const nameInput = document.getElementById('modal-player-name');
+        numInput.value = '';
+        nameInput.value = '';
         modal.style.display = 'flex';
-        input.focus();
+        numInput.focus();
 
-        const okBtn = document.getElementById('rename-ok');
-        const cancelBtn = document.getElementById('rename-cancel');
+        const okBtn = document.getElementById('add-player-ok');
+        const cancelBtn = document.getElementById('add-player-cancel');
         const ac = new AbortController();
 
         const cleanup = () => {
             modal.style.display = 'none';
-            input.placeholder = '';
-            input.maxLength = 30;
             ac.abort();
             okBtn.replaceWith(okBtn.cloneNode(true));
             cancelBtn.replaceWith(cancelBtn.cloneNode(true));
         };
 
         const doAdd = async () => {
-            const val = input.value.trim();
-            if (!val) { cleanup(); return; }
-            // Parse "#number name" or just "number name" or just "number"
-            const match = val.match(/^#?(\d{1,3})\s*(.*)/);
-            if (!match) { showToast('Enter a number (e.g. 7 Smith)'); return; }
-            const number = match[1];
-            const name = match[2] || '';
+            const number = numInput.value.trim();
+            if (!number) { showToast('Jersey number is required'); numInput.focus(); return; }
+            const name = nameInput.value.trim();
             await DB.addPlayer(selectedTeamId, number, name);
             cleanup();
             await refreshTrackPlayers();
@@ -269,9 +262,13 @@
             showToast('Player added');
         };
 
-        document.getElementById('rename-ok').addEventListener('click', doAdd);
-        document.getElementById('rename-cancel').addEventListener('click', cleanup);
-        input.addEventListener('keydown', (e) => {
+        document.getElementById('add-player-ok').addEventListener('click', doAdd);
+        document.getElementById('add-player-cancel').addEventListener('click', cleanup);
+        numInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { nameInput.focus(); e.preventDefault(); }
+            if (e.key === 'Escape') cleanup();
+        }, { signal: ac.signal });
+        nameInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') doAdd();
             if (e.key === 'Escape') cleanup();
         }, { signal: ac.signal });
