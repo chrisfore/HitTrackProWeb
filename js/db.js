@@ -220,7 +220,10 @@ const DB = (() => {
             exportDate: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
             teams: await getTeams(),
             players: await getPlayers(),
-            hits: await getHits()
+            hits: (await getHits()).map(h => ({
+                ...h,
+                timestamp: h.timestamp ? h.timestamp.replace(/\.\d{3}Z$/, 'Z') : h.timestamp
+            }))
         };
     }
 
