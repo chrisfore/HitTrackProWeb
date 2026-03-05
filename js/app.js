@@ -15,6 +15,8 @@
     const resultsCanvas = document.getElementById('results-canvas');
     const resultsCtx = resultsCanvas.getContext('2d');
     const toast = document.getElementById('toast');
+    const dateFilterToggle = document.getElementById('date-filter-toggle');
+    const dateRangeRow = document.getElementById('date-range-row');
 
     // Hit type colors
     const hitColors = {
@@ -436,9 +438,6 @@
     });
 
     // --- RESULTS TAB ---
-    const dateFilterToggle = document.getElementById('date-filter-toggle');
-    const dateRangeRow = document.getElementById('date-range-row');
-
     dateFilterToggle.addEventListener('change', () => {
         dateRangeRow.style.display = dateFilterToggle.checked ? 'flex' : 'none';
         refreshResults();
