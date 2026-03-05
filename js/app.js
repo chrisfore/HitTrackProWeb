@@ -426,14 +426,16 @@
         if (e.key === 'Escape' && document.getElementById('hit-modal').style.display === 'flex') closeHitModal();
     });
 
-    document.getElementById('undo-hit').addEventListener('click', async () => {
+    document.getElementById('undo-hit').addEventListener('click', () => {
         if (lastHitId) {
-            await DB.removeHit(lastHitId);
-            lastHitId = null;
-            document.getElementById('undo-hit').style.display = 'none';
-            await refreshTrackField();
-            await refreshPitchStats();
-            showToast('Hit undone');
+            showConfirm('Undo the last recorded hit?', async () => {
+                await DB.removeHit(lastHitId);
+                lastHitId = null;
+                document.getElementById('undo-hit').style.display = 'none';
+                await refreshTrackField();
+                await refreshPitchStats();
+                showToast('Hit undone');
+            });
         }
     });
 
