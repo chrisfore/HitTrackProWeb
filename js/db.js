@@ -166,7 +166,7 @@ const DB = (() => {
             hitType,
             pitchType: pitchType || null,
             pitchLocation: pitchLocation || null,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
         };
         await put('hits', hit);
         return hit;
@@ -212,12 +212,12 @@ const DB = (() => {
             .slice(0, 10);
     }
 
-    // Export
+    // Export (iOS-compatible format)
     async function exportAll() {
         return {
-            version: '1',
+            version: '1.0',
             exportType: 'all',
-            exportDate: new Date().toISOString(),
+            exportDate: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
             teams: await getTeams(),
             players: await getPlayers(),
             hits: await getHits()
@@ -226,11 +226,13 @@ const DB = (() => {
 
     // Import
     async function importData(data) {
+        if (!data || typeof data !== 'object') throw new Error('Invalid data');
+        if (data.hits && data.hits.length > 50000) throw new Error('File too large');
         let counts = { teams: 0, players: 0, hits: 0 };
         const teamMap = {};
         const playerMap = {};
 
-        if (data.teams) {
+        if (data.teams && Array.isArray(data.teams)) {
             for (const t of data.teams) {
                 const newId = crypto.randomUUID();
                 teamMap[t.id] = newId;

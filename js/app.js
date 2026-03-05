@@ -350,8 +350,13 @@
 
     document.getElementById('hit-save').addEventListener('click', saveHit);
 
-    document.getElementById('hit-cancel').addEventListener('click', () => {
+    function closeHitModal() {
         document.getElementById('hit-modal').style.display = 'none';
+    }
+
+    document.getElementById('hit-cancel').addEventListener('click', closeHitModal);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.getElementById('hit-modal').style.display === 'flex') closeHitModal();
     });
 
     document.getElementById('undo-hit').addEventListener('click', async () => {
@@ -506,11 +511,24 @@
     document.getElementById('export-pdf').addEventListener('click', async () => {
         const teamId = document.getElementById('results-team-filter').value;
         const playerId = document.getElementById('results-player-filter').value;
+        const pdfDateFrom = dateFilterToggle.checked ? document.getElementById('date-from').value : null;
+        const pdfDateTo = dateFilterToggle.checked ? document.getElementById('date-to').value : null;
 
         let hits;
         if (playerId) hits = await DB.getHitsByPlayer(playerId);
         else if (teamId) hits = await DB.getHitsByTeam(teamId);
         else hits = await DB.getHits();
+
+        // Apply date filter to PDF export
+        if (pdfDateFrom) {
+            const from = new Date(pdfDateFrom);
+            hits = hits.filter(h => new Date(h.timestamp) >= from);
+        }
+        if (pdfDateTo) {
+            const to = new Date(pdfDateTo);
+            to.setHours(23, 59, 59, 999);
+            hits = hits.filter(h => new Date(h.timestamp) <= to);
+        }
 
         if (hits.length === 0) { showToast('No data to export'); return; }
 
@@ -554,7 +572,7 @@
             <h2>Hit Types</h2>
             <table><tr><th>Type</th><th>Count</th></tr>
             ${Object.entries(hitTypeStats).map(([type, count]) =>
-                `<tr><td>${type}</td><td>${count}</td></tr>`
+                `<tr><td>${escapeHtml(type)}</td><td>${count}</td></tr>`
             ).join('')}
             <tr><td><strong>Total</strong></td><td><strong>${hits.length}</strong></td></tr>
             </table>
@@ -567,9 +585,11 @@
         </body></html>`;
 
         const printWindow = window.open('', '_blank');
+        if (!printWindow) { showToast('Pop-up blocked — please allow pop-ups'); return; }
         printWindow.document.write(html);
         printWindow.document.close();
         printWindow.focus();
+        printWindow.onafterprint = () => printWindow.close();
         printWindow.print();
     });
 
@@ -735,6 +755,7 @@
     document.getElementById('import-file').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        if (file.size > 10 * 1024 * 1024) { showToast('File too large (10MB max)'); e.target.value = ''; return; }
         try {
             const text = await file.text();
             const data = JSON.parse(text);
@@ -779,15 +800,18 @@
 
         const okBtn = document.getElementById('confirm-ok');
         const cancelBtn = document.getElementById('confirm-cancel');
+        const ac = new AbortController();
 
         const cleanup = () => {
             modal.style.display = 'none';
+            ac.abort();
             okBtn.replaceWith(okBtn.cloneNode(true));
             cancelBtn.replaceWith(cancelBtn.cloneNode(true));
         };
 
         document.getElementById('confirm-ok').addEventListener('click', () => { cleanup(); onConfirm(); });
         document.getElementById('confirm-cancel').addEventListener('click', cleanup);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') cleanup(); }, { signal: ac.signal });
     }
 
     function showRenameModal(title, currentValue, onSave) {
@@ -801,9 +825,11 @@
 
         const okBtn = document.getElementById('rename-ok');
         const cancelBtn = document.getElementById('rename-cancel');
+        const ac = new AbortController();
 
         const cleanup = () => {
             modal.style.display = 'none';
+            ac.abort();
             okBtn.replaceWith(okBtn.cloneNode(true));
             cancelBtn.replaceWith(cancelBtn.cloneNode(true));
         };
@@ -818,7 +844,8 @@
         document.getElementById('rename-cancel').addEventListener('click', cleanup);
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') document.getElementById('rename-ok').click();
-        });
+            if (e.key === 'Escape') cleanup();
+        }, { signal: ac.signal });
     }
 
     // --- Utilities ---
