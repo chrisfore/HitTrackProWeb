@@ -731,6 +731,40 @@ body {
 .toast.show { transform: translateX(-50%) translateY(0); }
 
 .date-toggle { cursor: pointer; }
+.help-content {
+    margin-top: 12px;
+}
+
+.help-block {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+
+.help-block h4 {
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+
+.help-block p {
+    margin: 0 0 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.help-block ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.help-block li { margin-bottom: 2px; }
+
 .version-text { text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
 
 .empty-state {

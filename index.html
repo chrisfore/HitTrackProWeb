@@ -151,6 +151,66 @@
                         </label>
                     </div>
                     <div class="settings-section">
+                        <h3>Help</h3>
+                        <button id="help-toggle" class="action-btn">How to Use This App</button>
+                        <div id="help-content" class="help-content" style="display:none;">
+                            <div class="help-block">
+                                <h4>Getting Started</h4>
+                                <p>Create a team, add players with jersey numbers, then start tracking hits on the field.</p>
+                            </div>
+                            <div class="help-block">
+                                <h4>Track Tab</h4>
+                                <ul>
+                                    <li>Select a team and player from the dropdowns</li>
+                                    <li>Tap anywhere on the field to record a hit location</li>
+                                    <li>Choose the hit type (required), pitch type, and pitch location (optional)</li>
+                                    <li>When a player is selected, only that player's hits are shown</li>
+                                    <li>When no player is selected, all team hits are shown</li>
+                                    <li>Hit History on the right shows pitch breakdowns — tap an entry to highlight those hits on the field</li>
+                                    <li>Use "Undo Last Hit" to remove the most recent entry</li>
+                                </ul>
+                            </div>
+                            <div class="help-block">
+                                <h4>Results Tab</h4>
+                                <ul>
+                                    <li>View spray charts and statistics filtered by team, player, or date range</li>
+                                    <li>Use the search box to find players by number or name</li>
+                                    <li>Click a player name in "Hits by Player" to filter — click again to deselect</li>
+                                    <li>Export PDF generates a printable report of the current view</li>
+                                </ul>
+                            </div>
+                            <div class="help-block">
+                                <h4>Settings Tab</h4>
+                                <ul>
+                                    <li>Create, rename, or delete teams</li>
+                                    <li>Add or remove players (jersey number required, name optional)</li>
+                                    <li>Use the search box to find players quickly</li>
+                                    <li>Select "All Teams" to view players across all teams</li>
+                                </ul>
+                            </div>
+                            <div class="help-block">
+                                <h4>Data Management</h4>
+                                <ul>
+                                    <li><strong>Export Player</strong> — export a single player's data</li>
+                                    <li><strong>Export Team</strong> — export an entire team's data</li>
+                                    <li><strong>Export All Data</strong> — export everything</li>
+                                    <li><strong>Import Data</strong> — import a .hitdata or .json file</li>
+                                    <li>Exported .hitdata files are compatible with the Hit Track Pro iOS app</li>
+                                </ul>
+                            </div>
+                            <div class="help-block">
+                                <h4>Data Storage</h4>
+                                <p>Your data is stored locally in your browser using IndexedDB. It persists across browser restarts and device reboots. However:</p>
+                                <ul>
+                                    <li>Clearing your browser data or site data will erase your data</li>
+                                    <li>Private/Incognito mode does <strong>not</strong> save data — it is wiped when the window closes</li>
+                                    <li>Different browsers maintain separate data (e.g. Chrome and Safari do not share data)</li>
+                                    <li><strong>We recommend exporting your data regularly as a backup</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-section">
                         <p class="version-text">Hit Track Pro Web v1.0</p>
                     </div>
                 </div>

@@ -87,6 +87,19 @@
         drawField(resultsCtx, resultsCanvas);
     });
 
+    // Help toggle
+    document.getElementById('help-toggle').addEventListener('click', () => {
+        const content = document.getElementById('help-content');
+        const btn = document.getElementById('help-toggle');
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            btn.textContent = 'Hide Help';
+        } else {
+            content.style.display = 'none';
+            btn.textContent = 'How to Use This App';
+        }
+    });
+
     // --- FIELD DRAWING ---
     function drawField(ctx, canvas, hits = [], highlightFilter = null) {
         const w = canvas.width;
