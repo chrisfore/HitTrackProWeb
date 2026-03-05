@@ -38,15 +38,24 @@
     }
 
     // Setup
-    document.getElementById('setup-start').addEventListener('click', async () => {
-        const name = document.getElementById('setup-team-name').value.trim() || 'My Team';
-        const team = await DB.addTeam(name);
-        selectedTeamId = team.id;
-        localStorage.setItem('hittrackpro_setup', 'true');
-        localStorage.setItem('hittrackpro_selectedTeam', team.id);
-        setupScreen.style.display = 'none';
-        mainApp.style.display = 'block';
-        await refreshAll();
+    async function completeSetup() {
+        try {
+            const name = document.getElementById('setup-team-name').value.trim() || 'My Team';
+            const team = await DB.addTeam(name);
+            selectedTeamId = team.id;
+            localStorage.setItem('hittrackpro_setup', 'true');
+            localStorage.setItem('hittrackpro_selectedTeam', team.id);
+            setupScreen.style.display = 'none';
+            mainApp.style.display = 'block';
+            await refreshAll();
+        } catch (err) {
+            console.error('Setup failed:', err);
+            showToast('Setup failed — please try again');
+        }
+    }
+    document.getElementById('setup-start').addEventListener('click', completeSetup);
+    document.getElementById('setup-team-name').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') completeSetup();
     });
 
     // Tabs
