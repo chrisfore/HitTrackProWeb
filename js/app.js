@@ -186,7 +186,7 @@
         const teamSelect = document.getElementById('track-team-select');
         teamSelect.innerHTML = teams.map(t =>
             `<option value="${t.id}" ${t.id === selectedTeamId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
-        ).join('') + '<option value="__new_team__">+ New Team...</option>';
+        ).join('') + '<option value="__new_team__">Create Team</option>';
 
         if (teams.length > 0 && !selectedTeamId) {
             selectedTeamId = teams[0].id;
@@ -201,7 +201,7 @@
     document.getElementById('track-team-select').addEventListener('change', async (e) => {
         if (e.target.value === '__new_team__') {
             e.target.value = selectedTeamId || '';
-            document.getElementById('create-team').click();
+            showCreateTeamModal();
             return;
         }
         selectedTeamId = e.target.value;
@@ -221,7 +221,7 @@
         const players = await DB.getPlayersByTeam(selectedTeamId);
         playerSelect.innerHTML = '<option value="">Select player</option>' +
             players.map(p => `<option value="${p.id}">${escapeHtml(displayName(p))}</option>`).join('') +
-            '<option value="__new__">+ New Player...</option>';
+            '<option value="__new__">Create Player</option>';
     }
 
     document.getElementById('track-player-select').addEventListener('change', async (e) => {
@@ -768,7 +768,7 @@
         });
     });
 
-    document.getElementById('create-team').addEventListener('click', () => {
+    function showCreateTeamModal() {
         const modal = document.getElementById('team-modal');
         const input = document.getElementById('team-name-input');
         input.value = '';
@@ -777,9 +777,11 @@
 
         const okBtn = document.getElementById('team-create-ok');
         const cancelBtn = document.getElementById('team-cancel');
+        const ac = new AbortController();
 
         const cleanup = () => {
             modal.style.display = 'none';
+            ac.abort();
             okBtn.replaceWith(okBtn.cloneNode(true));
             cancelBtn.replaceWith(cancelBtn.cloneNode(true));
         };
@@ -800,8 +802,11 @@
 
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') document.getElementById('team-create-ok').click();
-        });
-    });
+            if (e.key === 'Escape') cleanup();
+        }, { signal: ac.signal });
+    }
+
+    document.getElementById('create-team').addEventListener('click', showCreateTeamModal);
 
     // Data management
     document.getElementById('export-data').addEventListener('click', async () => {
