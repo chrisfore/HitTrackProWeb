@@ -4,6 +4,7 @@
 
     // State
     let selectedTeamId = localStorage.getItem('hittrackpro_selectedTeam');
+    let settingsTeamId = selectedTeamId;
     let lastHitId = null;
     let pitchFilter = null; // { pitchType, pitchLocation } or null
 
@@ -98,8 +99,8 @@
 
         // Draw outfield arc
         const homeX = w / 2;
-        const homeY = h - 30;
-        const radius = w * 0.85;
+        const homeY = h - 20;
+        const radius = w * 0.6;
 
         ctx.beginPath();
         ctx.arc(homeX, homeY, radius, Math.PI * 1.25, Math.PI * 1.75);
@@ -230,7 +231,11 @@
         if (e.target.value === '__new__') {
             e.target.value = '';
             showAddPlayerModal();
+            return;
         }
+        pitchFilter = null;
+        await refreshTrackField();
+        await refreshPitchStats();
     });
 
     function showAddPlayerModal() {
@@ -276,26 +281,30 @@
         }, { signal: ac.signal });
     }
 
+    function getSelectedPlayerId() {
+        return document.getElementById('track-player-select').value || null;
+    }
+
+    async function getTrackHits() {
+        const playerId = getSelectedPlayerId();
+        if (playerId) return await DB.getHitsByPlayer(playerId);
+        if (selectedTeamId) return await DB.getHitsByTeam(selectedTeamId);
+        return [];
+    }
+
     async function refreshTrackField() {
-        if (!selectedTeamId) {
-            drawField(fieldCtx, fieldCanvas);
-            return;
-        }
-        const hits = await DB.getHitsByTeam(selectedTeamId);
+        const hits = await getTrackHits();
         drawField(fieldCtx, fieldCanvas, hits, pitchFilter);
     }
 
     async function refreshPitchStats() {
         const container = document.getElementById('pitch-stats-list');
-        if (!selectedTeamId) {
-            container.innerHTML = '<div class="empty-state"><p>No team selected</p></div>';
-            return;
-        }
-        const hits = await DB.getHitsByTeam(selectedTeamId);
+        const hits = await getTrackHits();
         const stats = await DB.getPitchStats(hits);
 
         if (stats.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>No pitch data yet</p></div>';
+            const msg = !selectedTeamId ? 'Select a team' : !getSelectedPlayerId() ? 'No pitch data yet' : 'No pitch data for this player';
+            container.innerHTML = `<div class="empty-state"><p>${msg}</p></div>`;
             return;
         }
 
@@ -452,6 +461,10 @@
         await refreshResults();
     });
     document.getElementById('results-player-filter').addEventListener('change', refreshResults);
+    document.getElementById('results-player-search').addEventListener('input', async () => {
+        document.getElementById('results-player-filter').value = '';
+        await refreshResults();
+    });
 
     async function refreshResultsTeamFilter() {
         const teams = await DB.getTeams();
@@ -466,16 +479,24 @@
         const teamId = document.getElementById('results-team-filter').value;
         const select = document.getElementById('results-player-filter');
         const current = select.value;
+        const search = document.getElementById('results-player-search').value.trim().toLowerCase();
 
+        let players;
         if (teamId) {
-            const players = await DB.getPlayersByTeam(teamId);
-            select.innerHTML = '<option value="">All Players</option>' +
-                players.map(p => `<option value="${p.id}">${escapeHtml(displayName(p))}</option>`).join('');
+            players = await DB.getPlayersByTeam(teamId);
         } else {
-            const players = await DB.getPlayers();
-            select.innerHTML = '<option value="">All Players</option>' +
-                players.map(p => `<option value="${p.id}">${escapeHtml(displayName(p))}</option>`).join('');
+            players = await DB.getPlayers();
         }
+
+        if (search) {
+            players = players.filter(p =>
+                p.number.toLowerCase().includes(search) ||
+                (p.name && p.name.toLowerCase().includes(search))
+            );
+        }
+
+        select.innerHTML = '<option value="">All Players</option>' +
+            players.map(p => `<option value="${p.id}">${escapeHtml(displayName(p))}</option>`).join('');
         select.value = current;
     }
 
@@ -485,6 +506,7 @@
 
         const teamId = document.getElementById('results-team-filter').value;
         const playerId = document.getElementById('results-player-filter').value;
+        const search = document.getElementById('results-player-search').value.trim().toLowerCase();
         const dateFrom = dateFilterToggle.checked ? document.getElementById('date-from').value : null;
         const dateTo = dateFilterToggle.checked ? document.getElementById('date-to').value : null;
 
@@ -495,6 +517,17 @@
             hits = await DB.getHitsByTeam(teamId);
         } else {
             hits = await DB.getHits();
+        }
+
+        // Apply search filter — match player number or name
+        if (search && !playerId) {
+            const allPlayers = await DB.getPlayers();
+            const matchingIds = new Set(
+                allPlayers
+                    .filter(p => p.number.toLowerCase().includes(search) || (p.name && p.name.toLowerCase().includes(search)))
+                    .map(p => p.id)
+            );
+            hits = hits.filter(h => matchingIds.has(h.playerId));
         }
 
         // Apply date filter
@@ -537,40 +570,42 @@
                 `).join('')}
             </div>` : '';
 
-        // Hits by player (if showing team or all)
-        if (!playerId) {
-            const allPlayers = await DB.getPlayers();
-            const playerHitCounts = {};
-            for (const h of hits) {
-                playerHitCounts[h.playerId] = (playerHitCounts[h.playerId] || 0) + 1;
-            }
-
-            const playerStats = allPlayers
-                .filter(p => playerHitCounts[p.id])
-                .map(p => ({ ...p, hitCount: playerHitCounts[p.id] }))
-                .sort((a, b) => b.hitCount - a.hitCount);
-
-            document.getElementById('hits-by-player').innerHTML = playerStats.length > 0 ? `
-                <div class="stat-card">
-                    <h4>Hits by Player</h4>
-                    ${playerStats.map(p => `
-                        <div class="player-stat-row" data-player-id="${p.id}">
-                            <span>${escapeHtml(displayName(p))}</span>
-                            <span class="count">${p.hitCount}</span>
-                        </div>
-                    `).join('')}
-                </div>` : '';
-
-            // Click player to filter
-            document.querySelectorAll('.player-stat-row').forEach(row => {
-                row.addEventListener('click', () => {
-                    document.getElementById('results-player-filter').value = row.dataset.playerId;
-                    refreshResults();
-                });
-            });
-        } else {
-            document.getElementById('hits-by-player').innerHTML = '';
+        // Hits by player — always show, highlight selected
+        const allPlayersForStats = teamId ? await DB.getPlayersByTeam(teamId) : await DB.getPlayers();
+        const allHitsForPlayers = teamId ? await DB.getHitsByTeam(teamId) : await DB.getHits();
+        const playerHitCounts = {};
+        for (const h of allHitsForPlayers) {
+            playerHitCounts[h.playerId] = (playerHitCounts[h.playerId] || 0) + 1;
         }
+
+        const playerStats = allPlayersForStats
+            .filter(p => playerHitCounts[p.id])
+            .map(p => ({ ...p, hitCount: playerHitCounts[p.id] }))
+            .sort((a, b) => b.hitCount - a.hitCount);
+
+        document.getElementById('hits-by-player').innerHTML = playerStats.length > 0 ? `
+            <div class="stat-card">
+                <h4>Hits by Player</h4>
+                ${playerStats.map(p => `
+                    <div class="player-stat-row${p.id === playerId ? ' selected' : ''}" data-player-id="${p.id}">
+                        <span>${escapeHtml(displayName(p))}</span>
+                        <span class="count">${p.hitCount}</span>
+                    </div>
+                `).join('')}
+            </div>` : '';
+
+        // Click player to filter (or deselect if already selected)
+        document.querySelectorAll('.player-stat-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const filterSelect = document.getElementById('results-player-filter');
+                if (filterSelect.value === row.dataset.playerId) {
+                    filterSelect.value = '';
+                } else {
+                    filterSelect.value = row.dataset.playerId;
+                }
+                refreshResults();
+            });
+        });
     }
 
     // PDF Export
@@ -663,32 +698,41 @@
     async function refreshSettings() {
         const teams = await DB.getTeams();
         const settingsTeam = document.getElementById('settings-team-select');
-        settingsTeam.innerHTML = teams.map(t =>
-            `<option value="${t.id}" ${t.id === selectedTeamId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
-        ).join('');
+        settingsTeam.innerHTML = '<option value="">All Teams</option>' +
+            teams.map(t =>
+                `<option value="${t.id}" ${t.id === settingsTeamId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
+            ).join('');
 
         await refreshLineup();
     }
 
     document.getElementById('settings-team-select').addEventListener('change', async (e) => {
-        selectedTeamId = e.target.value;
-        localStorage.setItem('hittrackpro_selectedTeam', selectedTeamId);
+        settingsTeamId = e.target.value || null;
         await refreshLineup();
-        await refreshTrack();
     });
 
     async function refreshLineup() {
         const container = document.getElementById('lineup-list');
-        if (!selectedTeamId) {
-            container.innerHTML = '<div class="empty-state"><p>No team selected</p></div>';
-            return;
+        const search = document.getElementById('settings-player-search').value.trim().toLowerCase();
+
+        let players, hits;
+        if (settingsTeamId) {
+            players = await DB.getPlayersByTeam(settingsTeamId);
+            hits = await DB.getHitsByTeam(settingsTeamId);
+        } else {
+            players = await DB.getPlayers();
+            hits = await DB.getHits();
         }
 
-        const players = await DB.getPlayersByTeam(selectedTeamId);
-        const hits = await DB.getHitsByTeam(selectedTeamId);
+        if (search) {
+            players = players.filter(p =>
+                p.number.toLowerCase().includes(search) ||
+                (p.name && p.name.toLowerCase().includes(search))
+            );
+        }
 
         if (players.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>No players added yet</p></div>';
+            container.innerHTML = `<div class="empty-state"><p>${search ? 'No matching players' : 'No players added yet'}</p></div>`;
             return;
         }
 
@@ -722,9 +766,9 @@
         const number = document.getElementById('new-player-number').value.trim();
         const name = document.getElementById('new-player-name').value.trim();
         if (!number) { showToast('Jersey number is required'); return; }
-        if (!selectedTeamId) { showToast('Select a team first'); return; }
+        if (!settingsTeamId) { showToast('Select a team first'); return; }
 
-        await DB.addPlayer(selectedTeamId, number, name);
+        await DB.addPlayer(settingsTeamId, number, name);
         document.getElementById('new-player-number').value = '';
         document.getElementById('new-player-name').value = '';
         await refreshLineup();
@@ -739,14 +783,17 @@
         });
     });
 
+    // Settings player search
+    document.getElementById('settings-player-search').addEventListener('input', () => refreshLineup());
+
     // Team actions
     document.getElementById('rename-team').addEventListener('click', async () => {
-        if (!selectedTeamId) return;
+        if (!settingsTeamId) { showToast('Select a team first'); return; }
         const teams = await DB.getTeams();
-        const team = teams.find(t => t.id === selectedTeamId);
+        const team = teams.find(t => t.id === settingsTeamId);
         if (!team) return;
         showRenameModal('Rename Team', team.name, async (newName) => {
-            await DB.renameTeam(selectedTeamId, newName);
+            await DB.renameTeam(settingsTeamId, newName);
             await refreshSettings();
             await refreshTrack();
             showToast('Team renamed');
@@ -754,12 +801,15 @@
     });
 
     document.getElementById('delete-team').addEventListener('click', async () => {
-        if (!selectedTeamId) return;
+        if (!settingsTeamId) { showToast('Select a team first'); return; }
         showConfirm('Delete this team and all its players and hits?', async () => {
-            await DB.deleteTeam(selectedTeamId);
+            await DB.deleteTeam(settingsTeamId);
             const teams = await DB.getTeams();
-            selectedTeamId = teams.length > 0 ? teams[0].id : null;
-            localStorage.setItem('hittrackpro_selectedTeam', selectedTeamId || '');
+            if (selectedTeamId === settingsTeamId) {
+                selectedTeamId = teams.length > 0 ? teams[0].id : null;
+                localStorage.setItem('hittrackpro_selectedTeam', selectedTeamId || '');
+            }
+            settingsTeamId = null;
             await refreshSettings();
             await refreshTrack();
             showToast('Team deleted');
@@ -806,17 +856,109 @@
 
     document.getElementById('create-team').addEventListener('click', showCreateTeamModal);
 
-    // Data management
-    document.getElementById('export-data').addEventListener('click', async () => {
-        const data = await DB.exportAll();
+    // Data management — export helpers
+    function downloadData(data, filename) {
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `HitTrackPro_${new Date().toISOString().slice(0,10)}.hitdata`;
+        a.download = filename;
         a.click();
         URL.revokeObjectURL(url);
         showToast('Data exported');
+    }
+
+    function showExportModal(title, { showTeam, showPlayer, onExport }) {
+        const modal = document.getElementById('export-select-modal');
+        document.getElementById('export-select-title').textContent = title;
+        const teamLabel = document.getElementById('export-team-label');
+        const playerLabel = document.getElementById('export-player-label');
+        const teamDropdown = document.getElementById('export-team-dropdown');
+        const playerDropdown = document.getElementById('export-player-dropdown');
+        teamLabel.style.display = showTeam ? '' : 'none';
+        playerLabel.style.display = showPlayer ? '' : 'none';
+        modal.style.display = 'flex';
+
+        const okBtn = document.getElementById('export-select-ok');
+        const cancelBtn = document.getElementById('export-select-cancel');
+        const ac = new AbortController();
+
+        const cleanup = () => {
+            modal.style.display = 'none';
+            ac.abort();
+            okBtn.replaceWith(okBtn.cloneNode(true));
+            cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+        };
+
+        document.getElementById('export-select-ok').addEventListener('click', () => {
+            const teamId = showTeam ? teamDropdown.value : null;
+            const playerId = showPlayer ? playerDropdown.value : null;
+            cleanup();
+            onExport(teamId, playerId);
+        });
+        document.getElementById('export-select-cancel').addEventListener('click', cleanup);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') cleanup(); }, { signal: ac.signal });
+    }
+
+    async function populateExportTeams(preselectId) {
+        const teams = await DB.getTeams();
+        const dropdown = document.getElementById('export-team-dropdown');
+        dropdown.innerHTML = teams.map(t =>
+            `<option value="${t.id}" ${t.id === preselectId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
+        ).join('');
+        return teams;
+    }
+
+    async function populateExportPlayers(teamId) {
+        const players = await DB.getPlayersByTeam(teamId);
+        const dropdown = document.getElementById('export-player-dropdown');
+        dropdown.innerHTML = players.map(p =>
+            `<option value="${p.id}">${escapeHtml(displayName(p))}</option>`
+        ).join('');
+        return players;
+    }
+
+    document.getElementById('export-player').addEventListener('click', async () => {
+        const teams = await DB.getTeams();
+        if (teams.length === 0) { showToast('No teams to export'); return; }
+
+        await populateExportTeams(selectedTeamId);
+        await populateExportPlayers(selectedTeamId || teams[0].id);
+
+        // Update player list when team changes
+        const teamDropdown = document.getElementById('export-team-dropdown');
+        const onTeamChange = async () => await populateExportPlayers(teamDropdown.value);
+        teamDropdown.addEventListener('change', onTeamChange);
+
+        showExportModal('Export Player', { showTeam: true, showPlayer: true, onExport: async (teamId, playerId) => {
+            teamDropdown.removeEventListener('change', onTeamChange);
+            if (!playerId) { showToast('No player selected'); return; }
+            const data = await DB.exportPlayer(playerId);
+            const players = await DB.getPlayersByTeam(teamId);
+            const player = players.find(p => p.id === playerId);
+            const name = player ? (player.name || player.number).replace(/\s+/g, '_') : 'Player';
+            downloadData(data, `HitTrackPro_${name}_${new Date().toISOString().slice(0,10)}.hitdata`);
+        }});
+    });
+
+    document.getElementById('export-team').addEventListener('click', async () => {
+        const teams = await DB.getTeams();
+        if (teams.length === 0) { showToast('No teams to export'); return; }
+
+        await populateExportTeams(selectedTeamId);
+
+        showExportModal('Export Team', { showTeam: true, showPlayer: false, onExport: async (teamId) => {
+            if (!teamId) { showToast('No team selected'); return; }
+            const data = await DB.exportTeam(teamId);
+            const team = teams.find(t => t.id === teamId);
+            const name = team ? team.name.replace(/\s+/g, '_') : 'Team';
+            downloadData(data, `HitTrackPro_${name}_${new Date().toISOString().slice(0,10)}.hitdata`);
+        }});
+    });
+
+    document.getElementById('export-data').addEventListener('click', async () => {
+        const data = await DB.exportAll();
+        downloadData(data, `HitTrackPro_${new Date().toISOString().slice(0,10)}.hitdata`);
     });
 
     document.getElementById('import-data').addEventListener('click', () => {

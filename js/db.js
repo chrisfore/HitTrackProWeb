@@ -212,18 +212,52 @@ const DB = (() => {
             .slice(0, 10);
     }
 
+    function stripMs(ts) {
+        return ts ? ts.replace(/\.\d{3}Z$/, 'Z') : ts;
+    }
+
     // Export (iOS-compatible format)
     async function exportAll() {
         return {
             version: '1.0',
             exportType: 'all',
-            exportDate: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+            exportDate: stripMs(new Date().toISOString()),
             teams: await getTeams(),
             players: await getPlayers(),
-            hits: (await getHits()).map(h => ({
-                ...h,
-                timestamp: h.timestamp ? h.timestamp.replace(/\.\d{3}Z$/, 'Z') : h.timestamp
-            }))
+            hits: (await getHits()).map(h => ({ ...h, timestamp: stripMs(h.timestamp) }))
+        };
+    }
+
+    async function exportTeam(teamId) {
+        const teams = await getTeams();
+        const team = teams.find(t => t.id === teamId);
+        if (!team) throw new Error('Team not found');
+        const players = await getPlayersByTeam(teamId);
+        const hits = (await getHitsByTeam(teamId)).map(h => ({ ...h, timestamp: stripMs(h.timestamp) }));
+        return {
+            version: '1.0',
+            exportType: 'team',
+            exportDate: stripMs(new Date().toISOString()),
+            teams: [team],
+            players,
+            hits
+        };
+    }
+
+    async function exportPlayer(playerId) {
+        const allPlayers = await getPlayers();
+        const player = allPlayers.find(p => p.id === playerId);
+        if (!player) throw new Error('Player not found');
+        const teams = await getTeams();
+        const team = teams.find(t => t.id === player.teamId);
+        const hits = (await getHitsByPlayer(playerId)).map(h => ({ ...h, timestamp: stripMs(h.timestamp) }));
+        return {
+            version: '1.0',
+            exportType: 'player',
+            exportDate: stripMs(new Date().toISOString()),
+            teams: team ? [team] : [],
+            players: [player],
+            hits
         };
     }
 
@@ -291,6 +325,6 @@ const DB = (() => {
         getHits, getHitsByTeam, getHitsByPlayer, addHit, removeHit,
         clearHitsByTeam, clearAllHits,
         getHitTypeStats, getPitchStats,
-        exportAll, importData, resetAll, hasData
+        exportAll, exportTeam, exportPlayer, importData, resetAll, hasData
     };
 })();

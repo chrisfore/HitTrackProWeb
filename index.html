@@ -55,7 +55,7 @@
                 </div>
                 <div class="track-layout">
                     <div class="field-container">
-                        <canvas id="field-canvas" width="400" height="400"></canvas>
+                        <canvas id="field-canvas" width="500" height="500"></canvas>
                         <p class="field-hint">Tap the field to record a hit</p>
                     </div>
                     <div class="pitch-stats-bar">
@@ -78,6 +78,7 @@
                                 <option value="">All Players</option>
                             </select>
                         </label>
+                        <input type="text" id="results-player-search" placeholder="Search by # or name" class="search-input">
                     </div>
                     <div class="filter-row">
                         <label class="date-toggle">
@@ -94,7 +95,7 @@
                 </div>
                 <div class="results-content">
                     <div class="results-field-container">
-                        <canvas id="results-canvas" width="400" height="400"></canvas>
+                        <canvas id="results-canvas" width="500" height="500"></canvas>
                     </div>
                     <div class="results-stats">
                         <div id="hit-type-stats"></div>
@@ -108,7 +109,7 @@
             <div id="settings-tab" class="tab-content">
                 <div class="settings-sections">
                     <div class="settings-section">
-                        <h3>Team</h3>
+                        <h3>Teams</h3>
                         <div class="settings-row">
                             <label>Current Team:
                                 <select id="settings-team-select"></select>
@@ -121,7 +122,8 @@
                         </div>
                     </div>
                     <div class="settings-section">
-                        <h3>Lineup</h3>
+                        <h3>Players</h3>
+                        <input type="text" id="settings-player-search" placeholder="Search by number or name" class="search-input">
                         <div id="lineup-list" class="lineup-list"></div>
                         <div class="add-player-row">
                             <input type="text" id="new-player-number" placeholder="#" maxlength="3" class="number-input">
@@ -132,6 +134,8 @@
                     <div class="settings-section">
                         <h3>Data Management</h3>
                         <div class="data-actions">
+                            <button id="export-player" class="action-btn">Export Player</button>
+                            <button id="export-team" class="action-btn">Export Team</button>
                             <button id="export-data" class="action-btn">Export All Data</button>
                             <button id="import-data" class="action-btn">Import Data</button>
                             <input type="file" id="import-file" accept=".hitdata,.json" style="display:none;">
@@ -236,6 +240,25 @@
             <div class="modal-actions">
                 <button id="add-player-cancel" class="action-btn secondary">Cancel</button>
                 <button id="add-player-ok" class="action-btn">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Select Modal -->
+    <div id="export-select-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3 id="export-select-title">Select</h3>
+            <div class="export-select-fields">
+                <label id="export-team-label" style="display:none;">Team:
+                    <select id="export-team-dropdown"></select>
+                </label>
+                <label id="export-player-label" style="display:none;">Player:
+                    <select id="export-player-dropdown"></select>
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button id="export-select-cancel" class="action-btn secondary">Cancel</button>
+                <button id="export-select-ok" class="action-btn">Export</button>
             </div>
         </div>
     </div>
