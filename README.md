@@ -58,3 +58,7 @@ All data is stored locally in your browser using IndexedDB. It persists across r
 - IndexedDB for local data persistence
 - Canvas API for field rendering and spray charts
 - No build tools or external dependencies required
+
+## Copyright
+
+© 2026 CROSSFIRE-FORE INC. All Rights Reserved.
