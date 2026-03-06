@@ -122,6 +122,16 @@
                         </div>
                     </div>
                     <div class="settings-section">
+                        <h3>Players</h3>
+                        <input type="text" id="settings-player-search" placeholder="Search by number or name" class="search-input">
+                        <div id="lineup-list" class="lineup-list"></div>
+                        <div class="add-player-row">
+                            <input type="text" id="new-player-number" placeholder="#" maxlength="3" class="number-input">
+                            <input type="text" id="new-player-name" placeholder="Name (optional)" maxlength="60">
+                            <button id="add-player" class="action-btn">Add</button>
+                        </div>
+                    </div>
+                    <div class="settings-section">
                         <h3>Team Logo</h3>
                         <p class="section-hint">Displayed on exported PDF reports</p>
                         <div class="logo-upload">
@@ -131,16 +141,6 @@
                                 <button id="remove-logo" class="action-btn danger" style="display:none;">Remove Logo</button>
                                 <input type="file" id="logo-file" accept="image/*" style="display:none;">
                             </div>
-                        </div>
-                    </div>
-                    <div class="settings-section">
-                        <h3>Players</h3>
-                        <input type="text" id="settings-player-search" placeholder="Search by number or name" class="search-input">
-                        <div id="lineup-list" class="lineup-list"></div>
-                        <div class="add-player-row">
-                            <input type="text" id="new-player-number" placeholder="#" maxlength="3" class="number-input">
-                            <input type="text" id="new-player-name" placeholder="Name (optional)" maxlength="60">
-                            <button id="add-player" class="action-btn">Add</button>
                         </div>
                     </div>
                     <div class="settings-section">
