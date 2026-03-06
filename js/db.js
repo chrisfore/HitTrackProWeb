@@ -262,45 +262,68 @@ const DB = (() => {
     }
 
     // Import
+    const VALID_HIT_TYPES = ['Fly Ball', 'Line Drive', 'Pop Up', 'Grounder'];
+    const VALID_PITCH_TYPES = ['Fastball', 'Change Up', 'Curve', 'Rise', 'Drop', null];
+    const VALID_PITCH_LOCATIONS = ['High', 'Low', 'Inside', 'Outside', 'Middle', null];
+
     async function importData(data) {
         if (!data || typeof data !== 'object') throw new Error('Invalid data');
-        if (data.hits && data.hits.length > 50000) throw new Error('File too large');
+        if (!Array.isArray(data.teams)) throw new Error('Invalid teams');
+        if (!Array.isArray(data.players)) throw new Error('Invalid players');
+        if (!Array.isArray(data.hits)) throw new Error('Invalid hits');
+        if (data.hits.length > 50000) throw new Error('File too large: too many hits');
+        if (data.teams.length > 1000) throw new Error('File too large: too many teams');
+        if (data.players.length > 10000) throw new Error('File too large: too many players');
+
         let counts = { teams: 0, players: 0, hits: 0 };
         const teamMap = {};
         const playerMap = {};
 
-        if (data.teams && Array.isArray(data.teams)) {
-            for (const t of data.teams) {
-                const newId = crypto.randomUUID();
-                teamMap[t.id] = newId;
-                await put('teams', { ...t, id: newId });
-                counts.teams++;
-            }
+        for (const t of data.teams) {
+            if (!t || typeof t.name !== 'string' || !t.name.trim()) continue;
+            const newId = crypto.randomUUID();
+            if (t.id) teamMap[String(t.id)] = newId;
+            await put('teams', { id: newId, name: String(t.name).trim().substring(0, 60) });
+            counts.teams++;
         }
 
-        if (data.players) {
-            for (const p of data.players) {
-                const newId = crypto.randomUUID();
-                playerMap[p.id] = newId;
-                await put('players', {
-                    ...p,
-                    id: newId,
-                    teamId: teamMap[p.teamId] || p.teamId
-                });
-                counts.players++;
-            }
+        for (const p of data.players) {
+            if (!p || typeof p.number !== 'string' && typeof p.number !== 'number') continue;
+            const newId = crypto.randomUUID();
+            if (p.id) playerMap[String(p.id)] = newId;
+            await put('players', {
+                id: newId,
+                teamId: teamMap[String(p.teamId)] || String(p.teamId || ''),
+                number: String(p.number).trim().substring(0, 3),
+                name: String(p.name || '').trim().substring(0, 60),
+                lineupOrder: Number(p.lineupOrder) || 0
+            });
+            counts.players++;
         }
 
-        if (data.hits) {
-            for (const h of data.hits) {
-                await put('hits', {
-                    ...h,
-                    id: crypto.randomUUID(),
-                    playerId: playerMap[h.playerId] || h.playerId,
-                    teamId: teamMap[h.teamId] || h.teamId
-                });
-                counts.hits++;
-            }
+        for (const h of data.hits) {
+            if (!h) continue;
+            const hitType = String(h.hitType || '');
+            if (!VALID_HIT_TYPES.includes(hitType)) continue;
+            const locX = Number(h.locationX);
+            const locY = Number(h.locationY);
+            if (isNaN(locX) || isNaN(locY) || locX < 0 || locX > 1 || locY < 0 || locY > 1) continue;
+            const pitchType = h.pitchType ? String(h.pitchType).substring(0, 30) : null;
+            if (pitchType && !VALID_PITCH_TYPES.includes(pitchType)) continue;
+            const pitchLoc = h.pitchLocation ? String(h.pitchLocation).substring(0, 30) : null;
+            if (pitchLoc && !VALID_PITCH_LOCATIONS.includes(pitchLoc)) continue;
+            await put('hits', {
+                id: crypto.randomUUID(),
+                playerId: playerMap[String(h.playerId)] || String(h.playerId || ''),
+                teamId: teamMap[String(h.teamId)] || String(h.teamId || ''),
+                locationX: locX,
+                locationY: locY,
+                hitType: hitType,
+                pitchType: pitchType,
+                pitchLocation: pitchLoc,
+                timestamp: typeof h.timestamp === 'string' ? h.timestamp.substring(0, 30) : new Date().toISOString()
+            });
+            counts.hits++;
         }
 
         return counts;

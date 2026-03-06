@@ -674,11 +674,13 @@
         drawField(printCtx, printCanvas, hits);
         const chartImage = printCanvas.toDataURL('image/png');
 
-        const logoHtml = logoDataUrl
+        const logoHtml = logoDataUrl && isValidDataUrl(logoDataUrl)
             ? `<img src="${logoDataUrl}" class="logo">`
             : '';
 
-        const html = `<html><head><style>
+        const html = `<html><head>
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none';">
+            <style>
             body { font-family: -apple-system, sans-serif; padding: 20px; color: #1d1d1f; }
             .header { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
             .logo { width: 50px; height: 50px; object-fit: contain; }
@@ -751,12 +753,16 @@
         const preview = document.getElementById('logo-preview');
         const removeBtn = document.getElementById('remove-logo');
         const logo = localStorage.getItem('hittrackpro_logo');
-        if (logo) {
-            preview.innerHTML = `<img src="${logo}" alt="Logo">`;
+        preview.textContent = '';
+        if (logo && isValidDataUrl(logo)) {
+            const img = document.createElement('img');
+            img.src = logo;
+            img.alt = 'Logo';
+            preview.appendChild(img);
             preview.classList.add('has-logo');
             removeBtn.style.display = '';
         } else {
-            preview.innerHTML = 'No logo';
+            preview.textContent = 'No logo';
             preview.classList.remove('has-logo');
             removeBtn.style.display = 'none';
         }
@@ -771,9 +777,11 @@
     document.getElementById('logo-file').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        if (!file.type.startsWith('image/')) { showToast('Please select an image file'); e.target.value = ''; return; }
         if (file.size > 500 * 1024) { showToast('Image too large (500KB max)'); e.target.value = ''; return; }
         const reader = new FileReader();
         reader.onload = () => {
+            if (!isValidDataUrl(reader.result)) { showToast('Invalid image file'); return; }
             localStorage.setItem('hittrackpro_logo', reader.result);
             refreshLogoPreview();
             showToast('Logo uploaded');
@@ -1161,11 +1169,15 @@
 
     function escapeHtml(str) {
         const div = document.createElement('div');
-        div.textContent = str;
+        div.textContent = String(str ?? '');
         return div.innerHTML;
     }
 
     function escapeAttr(str) {
-        return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return String(str ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/`/g, '&#96;');
+    }
+
+    function isValidDataUrl(url) {
+        return typeof url === 'string' && /^data:image\/(png|jpeg|gif|webp|bmp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(url);
     }
 })();
